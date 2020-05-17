@@ -4,6 +4,7 @@ import "fmt"
 
 func greetings(gopher string) <-chan string {
 	c := make(chan string)
+	defer close(c)
 
 	go func() {
 		c <- fmt.Sprintf("Hello, I'm %s, nice to meet you!", gopher)
