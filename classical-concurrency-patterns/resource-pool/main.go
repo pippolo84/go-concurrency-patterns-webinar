@@ -36,9 +36,11 @@ func NewPool(bound int) *Pool {
 }
 
 // Get acquires a Resource
-func (p *Pool) Get() *Resource {
+func (p *Pool) Get(ctx context.Context) *Resource {
 	p.busy <- struct{}{}
 	select {
+	case <-ctx.Done():
+		return nil
 	case r := <-p.free:
 		return r
 	default:
@@ -51,9 +53,14 @@ func (p *Pool) Get() *Resource {
 }
 
 // Put releases a Resource
-func (p *Pool) Put(r *Resource) {
-	p.free <- r
-	<-p.busy
+func (p *Pool) Put(ctx context.Context, r *Resource) {
+	select {
+	case <-ctx.Done():
+		return
+	default:
+		p.free <- r
+		<-p.busy
+	}
 }
 
 func worker(ctx context.Context, wg *sync.WaitGroup, p *Pool) {
@@ -68,10 +75,13 @@ func worker(ctx context.Context, wg *sync.WaitGroup, p *Pool) {
 			default:
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
 				if r != nil {
-					p.Put(r)
+					p.Put(ctx, r)
 					r = nil
 				} else {
-					r = p.Get()
+					r = p.Get(ctx)
+					if r == nil {
+						return
+					}
 
 					// use acquired resource
 					fmt.Printf("using resource: %v\n", *r)
