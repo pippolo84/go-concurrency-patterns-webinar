@@ -1,1 +1,1 @@
-# go-concurrency-patterns-webinar
+# Go Concurrency Patterns - Fabio Falzoi
