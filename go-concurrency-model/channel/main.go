@@ -2,19 +2,22 @@ package main
 
 import "fmt"
 
-func greetings(gopher string) <-chan string {
+func greetings(gophers ...string) <-chan string {
 	c := make(chan string)
-	defer close(c)
 
 	go func() {
-		c <- fmt.Sprintf("Hello, I'm %s, nice to meet you!", gopher)
+		defer close(c)
+		for _, gopher := range gophers {
+			c <- fmt.Sprintf("Hello, I'm %s, nice to meet you!", gopher)
+		}
 	}()
 
 	return c
 }
 
 func main() {
-	fmt.Println(<-greetings("Goffredo"))
-	fmt.Println(<-greetings("Golia"))
-	fmt.Println(<-greetings("Gottardo"))
+	gophers := []string{"Gaetano", "Goffredo", "Golia", "Gottardo"}
+	for message := range greetings(gophers...) {
+		fmt.Println(message)
+	}
 }

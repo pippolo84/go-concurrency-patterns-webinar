@@ -12,14 +12,16 @@ func greetings(ctx context.Context, gopher string) <-chan string {
 	go func() {
 		defer close(c)
 		for {
-			// limit the rate of the output
-			time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-
+			// simulate a workload that takes a certain time to execute
+			// but remain reponsive listening for cancellation signal
 			select {
 			case <-ctx.Done():
 				return
-			case c <- fmt.Sprintf("Hello, I'm %s, nice to meet you!", gopher):
+			case <-time.After(time.Duration(rand.Intn(500)) * time.Millisecond):
 			}
+
+			// send the result back
+			c <- fmt.Sprintf("Hello, I'm %s, nice to meet you!", gopher)
 		}
 	}()
 	return c
