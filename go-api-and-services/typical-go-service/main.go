@@ -2,65 +2,113 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"math/rand"
 	"os"
 	"os/signal"
 	"sync"
+	"time"
 )
 
-type Message struct{}
+func init() {
+	rand.Seed(time.Now().Unix())
+}
 
-type Actor struct {
-	Events chan<- Message
-	Errors chan<- error
+// Message holds data produced by our service
+type Message struct {
+	payload string
+}
+
+// Service is the descriptor of the service
+type Service struct {
+	events chan Message
+	errors chan error
 
 	// additional status
 }
 
-func NewActor() (*Actor, error) {
-	actor := &Actor{
-		Events: make(chan Message),
-		Errors: make(chan error),
+// NewService creates a new Service
+func NewService() (*Service, error) {
+	Service := &Service{
+		events: make(chan Message),
+		errors: make(chan error),
 	}
 
-	return actor, nil
+	return Service, nil
 }
 
-func (a *Actor) Run(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
+// Run starts the service and the production of messages
+func (a *Service) Run(ctx context.Context, wg *sync.WaitGroup) (<-chan Message, <-chan error) {
+	wg.Add(1)
 
 	go func() {
+		defer func() {
+			// clean up the service during shutdown
+			close(a.events)
+			close(a.errors)
+
+			wg.Done()
+		}()
+
 		for {
+			var (
+				msg Message
+				err error
+			)
+
+			// simulate a job that takes some time and may produce errors
+			time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+			if rand.Intn(2) != 0 {
+				msg, err = Message{"payload"}, nil
+			} else {
+				msg, err = Message{}, errors.New("error")
+			}
+
+			// send back results
 			select {
 			case <-ctx.Done():
 				return
-			default:
-				// do work and send results to Events and Errors channels
+			case a.events <- msg:
+			case a.errors <- err:
 			}
 		}
 	}()
+
+	return a.events, a.errors
 }
 
 func main() {
-	actor, err := NewActor()
-	if err != nil {
-		panic(err)
-	}
-
-	ctx, cancelFn := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
-
-	wg.Add(1)
-	actor.Run(ctx, &wg)
 
 	// Setting up signal capturing
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
 
-	// Waiting for SIGINT (pkill -2)
-	<-stop
+	// Create the service
+	Service, err := NewService()
+	if err != nil {
+		panic(err)
+	}
 
-	cancelFn()
+	// Start the service
+	events, errors := Service.Run(ctx, &wg)
 
-	// wait for all goroutine to complete shutdown
-	wg.Wait()
+	// Consume events
+	for {
+		select {
+		case <-stop:
+			// signal cancellation
+			cancel()
+			// wait for all goroutine to complete shutdown
+			wg.Wait()
+
+			return
+		case ev := <-events:
+			fmt.Printf("received event: %v\n", ev)
+		case err := <-errors:
+			fmt.Printf("received error: %v\n", err)
+		}
+	}
 }
