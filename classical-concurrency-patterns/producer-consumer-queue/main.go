@@ -54,7 +54,6 @@ func consumer(ctx context.Context, wg *sync.WaitGroup, c <-chan message) {
 func main() {
 	var wg sync.WaitGroup
 	ctx, cancelFn := context.WithCancel(context.Background())
-	defer cancelFn()
 
 	wg.Add(2)
 	c := producer(ctx, &wg)

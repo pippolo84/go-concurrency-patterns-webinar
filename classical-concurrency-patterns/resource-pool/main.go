@@ -21,23 +21,26 @@ type Resource struct {
 	id int32
 }
 
+// Token represents a place card that must be held to do something
+type Token struct{}
+
 // Pool manages a bounded number of equivalent resources
 type Pool struct {
 	free chan *Resource
-	busy chan struct{}
+	busy chan Token
 }
 
 // NewPool creates a Pool of bound resources
 func NewPool(bound int) *Pool {
 	return &Pool{
 		free: make(chan *Resource, bound),
-		busy: make(chan struct{}, bound),
+		busy: make(chan Token, bound),
 	}
 }
 
 // Get acquires a Resource
 func (p *Pool) Get(ctx context.Context) *Resource {
-	p.busy <- struct{}{}
+	p.busy <- Token{}
 	select {
 	case <-ctx.Done():
 		return nil

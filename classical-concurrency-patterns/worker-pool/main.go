@@ -20,7 +20,7 @@ type Task struct {
 func NewTask(ID int) Task {
 	return Task{
 		ID:       ID,
-		duration: time.Duration(time.Duration(rand.Intn(500)) * time.Millisecond),
+		duration: time.Duration(rand.Intn(500)) * time.Millisecond,
 	}
 }
 
@@ -45,7 +45,7 @@ func NewWorkerPool(bound int) (*WorkerPool, error) {
 	}, nil
 }
 
-// Do lanch a goroutine to complete tasks concurrently
+// Do launch a goroutine to complete tasks concurrently
 func (wp *WorkerPool) Do(tasks []Task) {
 	for _, task := range tasks {
 		// acquire a token

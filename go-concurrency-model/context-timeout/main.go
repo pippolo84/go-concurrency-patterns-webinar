@@ -7,17 +7,23 @@ import (
 	"time"
 )
 
+func init() {
+	rand.Seed(time.Now().Unix())
+}
+
 func greetings(ctx context.Context, gopher string) <-chan string {
 	c := make(chan string)
 	go func() {
 		defer close(c)
 		for {
 			// simulate a workload that takes a certain time to execute
-			// but remain reponsive listening for cancellation signal
+			// but remain responsive listening for cancellation signal
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(time.Duration(rand.Intn(500)) * time.Millisecond):
+			case <-time.After(
+				time.Duration(rand.Intn(500)) * time.Millisecond,
+			):
 			}
 
 			// send the result back
@@ -28,8 +34,8 @@ func greetings(ctx context.Context, gopher string) <-chan string {
 }
 
 func main() {
-	rand.Seed(time.Now().Unix())
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelFn()
 
 	c1 := greetings(ctx, "Goffredo")
 	c2 := greetings(ctx, "Golia")

@@ -25,14 +25,13 @@ func slowHandler(w http.ResponseWriter, req *http.Request) {
 	// create an errgroup with context derived from the previous one
 	g, ctx := errgroup.WithContext(timeoutCtx)
 
-	// requests 256 bytes each second (total 1024 bytes)
 	for _, url := range urls {
-		// see https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
+		// https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
 		url := url
 
 		// launch a goroutine to fetch urls in parallel
 		// each error will be correctly propagated to the caller
-		// the timeout context will avoid blocking for too long
+		// the timeout context avoid blocking for too long
 		g.Go(func() error {
 			req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 			if err != nil {
