@@ -30,23 +30,23 @@ type Service struct {
 
 // NewService creates a new Service
 func NewService() (*Service, error) {
-	Service := &Service{
+	service := &Service{
 		events: make(chan Message),
 		errors: make(chan error),
 	}
 
-	return Service, nil
+	return service, nil
 }
 
 // Run starts the service and the production of messages
-func (a *Service) Run(ctx context.Context, wg *sync.WaitGroup) (<-chan Message, <-chan error) {
+func (s *Service) Run(ctx context.Context, wg *sync.WaitGroup) (<-chan Message, <-chan error) {
 	wg.Add(1)
 
 	go func() {
 		defer func() {
 			// clean up the service during shutdown
-			close(a.events)
-			close(a.errors)
+			close(s.events)
+			close(s.errors)
 
 			wg.Done()
 		}()
@@ -69,13 +69,13 @@ func (a *Service) Run(ctx context.Context, wg *sync.WaitGroup) (<-chan Message, 
 			select {
 			case <-ctx.Done():
 				return
-			case a.events <- msg:
-			case a.errors <- err:
+			case s.events <- msg:
+			case s.errors <- err:
 			}
 		}
 	}()
 
-	return a.events, a.errors
+	return s.events, s.errors
 }
 
 func main() {
@@ -87,13 +87,13 @@ func main() {
 	signal.Notify(stop, os.Interrupt)
 
 	// Create the service
-	Service, err := NewService()
+	service, err := NewService()
 	if err != nil {
 		panic(err)
 	}
 
 	// Start the service
-	events, errors := Service.Run(ctx, &wg)
+	events, errors := service.Run(ctx, &wg)
 
 	// Consume events
 	for {
