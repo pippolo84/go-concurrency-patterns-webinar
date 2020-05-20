@@ -39,13 +39,18 @@ func (s *Service) Run() <-chan Item {
 
 // Operation is an example of a callback to be applied to an item
 func Operation(i Item) {
-	fmt.Printf("executing callback on item: %v\n", i)
+	fmt.Printf("executing operation on item: %v\n", i)
 }
 
 func main() {
 	service := NewService()
 	items := service.Run()
-	for item := range items {
-		Operation(item)
+	go func() {
+		for item := range items {
+			Operation(item)
+		}
+	}()
+
+	for {
 	}
 }
